@@ -23,7 +23,7 @@ body {
     margin: 0;
     padding: 10px;
     word-break: break-all;
-    white-space: normal;
+    white-space: pre-wrap;
     &:empty {
       padding: 0;
     }
