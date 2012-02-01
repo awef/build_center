@@ -1,0 +1,50 @@
+html {
+  background-color: #606666;
+}
+body {
+  margin: 0;
+}
+
+.item {
+  background-color: #666;
+  margin: 10px;
+  color: #eee;
+  box-shadow: 0 0 5px #333;
+
+  > header {
+    padding: 10px;
+    background-image: -webkit-linear-gradient(#444, #333);
+    background-image: -moz-linear-gradient(#444, #333);
+  }
+
+  > .log {
+    background-color: #333;
+    color: #eee;
+    margin: 0;
+    padding: 10px;
+    word-break: break-all;
+    white-space: normal;
+    &:empty {
+      padding: 0;
+    }
+  }
+
+  &.normal {
+    .name {
+      color: #9c6;
+    }
+  }
+
+  &.in_progress {
+    .name {
+      color: #999;
+    }
+  }
+
+  &.error {
+    border: 2px solid #c66;
+    .name {
+      color: #c66;
+    }
+  }
+}
