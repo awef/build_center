@@ -1,4 +1,22 @@
 window.addEventListener "load", ->
+  get_audio = (path) ->
+    xhr = new XMLHttpRequest()
+    xhr.open "GET", path, false
+    xhr.responseType = "arraybuffer"
+    xhr.send()
+    str = ""
+    for a in new Uint8Array xhr.response
+      str += String.fromCharCode a
+    new Audio("data:audio/ogg;base64,#{btoa str}")
+
+  voice_complete = get_audio "voice_complete.ogg"
+  voice_error = get_audio "voice_error.ogg"
+
+  voice_play = (audio) ->
+    audio.load()
+    audio.play()
+    return
+
   socket = io.connect "http://localhost"
 
   update_favicon = ->
@@ -20,7 +38,7 @@ window.addEventListener "load", ->
     document.head.appendChild link
     return
 
-  update_item = (message) ->
+  update_item = (message, mute = false) ->
     item = document.querySelector ".item[data-item_id=\"#{message.id}\"]"
     unless item?
       item = document.querySelector("#template > .item").cloneNode true
@@ -31,11 +49,17 @@ window.addEventListener "load", ->
     item.querySelector(".log").textContent = message.log or ""
     item.parentNode.insertBefore item, item.parentNode.firstChild
     update_favicon()
+    if not mute
+      switch message.status
+        when "normal"
+          voice_play voice_complete
+        when "error"
+          voice_play voice_error
     return
 
   socket.on "item_list", (item_list) ->
     for item in item_list
-      update_item item
+      update_item item, true
     return
 
   socket.on "item_updated", update_item

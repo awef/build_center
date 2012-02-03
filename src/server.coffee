@@ -3,7 +3,13 @@ child_process = require "child_process"
 crypto = require "crypto"
 
 app = require("http").createServer (req, res) ->
-  if req.url in ["/", "/client.css", "/client.js"]
+  if req.url in [
+    "/"
+    "/client.css"
+    "/client.js"
+    "/voice_complete.ogg"
+    "/voice_error.ogg"
+  ]
     local_path = if req.url is "/" then "/client.html" else req.url
     fs.readFile __dirname + local_path, (err, data) ->
       if /\.html?$/.test local_path
