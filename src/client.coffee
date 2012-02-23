@@ -20,9 +20,9 @@ window.addEventListener "load", ->
   socket = io.connect "http://localhost"
 
   update_favicon = ->
-    if document.querySelector ".item.in_progress"
+    if document.querySelector ".project.in_progress"
       icon = "data:image/gif;base64,R0lGODlhEAAQAPAAAICAgAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw=="
-    else if document.querySelector ".item.error"
+    else if document.querySelector ".project.error"
       icon = "data:image/gif;base64,R0lGODlhEAAQAPAAAP8AAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw=="
     else
       icon = "data:image/gif;base64,R0lGODlhEAAQAPAAAACAAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw=="
@@ -38,16 +38,16 @@ window.addEventListener "load", ->
     document.head.appendChild link
     return
 
-  update_item = (message, mute = false) ->
-    item = document.querySelector ".item[data-item_id=\"#{message.id}\"]"
-    unless item?
-      item = document.querySelector("#template > .item").cloneNode true
-      item.setAttribute "data-item_id", message.id
-      item.querySelector(".name").textContent = message.name
-      document.querySelector("#item_container").appendChild item
-    item.className = "item #{message.status}"
-    item.querySelector(".log").textContent = message.log or ""
-    item.parentNode.insertBefore item, item.parentNode.firstChild
+  update_project = (message, mute = false) ->
+    project = document.querySelector ".project[data-project_id=\"#{message.id}\"]"
+    unless project?
+      project = document.querySelector("#template > .project").cloneNode true
+      project.setAttribute "data-project_id", message.id
+      project.querySelector(".name").textContent = message.name
+      document.querySelector("#projects").appendChild project
+    project.className = "project #{message.status}"
+    project.querySelector(".log").textContent = message.log or ""
+    project.parentNode.insertBefore project, project.parentNode.firstChild
     update_favicon()
     if not mute
       switch message.status
@@ -57,11 +57,11 @@ window.addEventListener "load", ->
           voice_play voice_error
     return
 
-  socket.on "item_list", (item_list) ->
-    for item in item_list
-      update_item item, true
+  socket.on "all_projects", (message) ->
+    for project in message
+      update_project project, true
     return
 
-  socket.on "item_updated", update_item
+  socket.on "project_updated", update_project
 
   return
