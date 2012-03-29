@@ -1,18 +1,27 @@
 window.addEventListener "load", ->
-  get_audio = (path) ->
+  get_audio = (path, callback) ->
     xhr = new XMLHttpRequest()
-    xhr.open "GET", path, false
+    xhr.open "GET", path
     xhr.responseType = "arraybuffer"
+    xhr.onload = ->
+      str = ""
+      for a in new Uint8Array @response
+        str += String.fromCharCode a
+      callback(new Audio("data:audio/ogg;base64,#{btoa str}"))
+      return
     xhr.send()
-    str = ""
-    for a in new Uint8Array xhr.response
-      str += String.fromCharCode a
-    new Audio("data:audio/ogg;base64,#{btoa str}")
 
-  voice_complete = get_audio "voice_complete.ogg"
-  voice_error = get_audio "voice_error.ogg"
+  voice_complete = null
+  voice_error = null
+  get_audio "voice_complete.ogg", (audio) ->
+    voice_complete = audio
+    return
+  get_audio "voice_error.ogg", (audio) ->
+    voice_error = audio
+    return
 
   voice_play = (audio) ->
+    return unless audio?
     audio.load()
     audio.play()
     return
