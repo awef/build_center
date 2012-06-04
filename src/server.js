@@ -81,6 +81,8 @@ app.listen(8000);
 
 var io = require("socket.io").listen(app);
 
+io.set("log level", 1);
+
 var config = JSON.parse(fs.readFileSync(process.env.HOME + "/.build_center"));
 
 var projects = [];
