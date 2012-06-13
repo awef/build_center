@@ -36,6 +36,8 @@ Project.prototype = {
   build: function (callback) {
     var project = this;
 
+    console.log("\u001b[1;33mbuild start:\u001b[0m " + project.name);
+
     var child_process = require("child_process");
     var command = "cd #{@base_path}; #{@build_command}";
     var command = "cd " + this.basePath + "; " + this.buildCommand;
@@ -44,6 +46,15 @@ Project.prototype = {
     child_process.exec(command, function (error, stdout, stderr) {
       project.status = error ? "error" : "normal";
       project.log = stderr + (stderr && stdout ? "\n" : "") + stdout;
+
+      console.log(project.log);
+      if (project.status === "normal") {
+        console.log("\u001b[1;32mbuild completed:\u001b[0m " + project.name);
+      }
+      else {
+        console.log("\u001b[1;31mbuild failed:\u001b[0m " + project.name);
+      }
+
       callback.call(project);
     });
   }
