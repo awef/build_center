@@ -39,7 +39,6 @@ Project.prototype = {
     console.log("\u001b[1;33mbuild start:\u001b[0m " + project.name);
 
     var child_process = require("child_process");
-    var command = "cd #{@base_path}; #{@build_command}";
     var command = "cd " + this.basePath + "; " + this.buildCommand;
     this.status = "in_progress";
 
