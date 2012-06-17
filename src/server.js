@@ -46,7 +46,7 @@ Project.prototype = {
       project.status = error ? "error" : "normal";
       project.log = stderr + (stderr && stdout ? "\n" : "") + stdout;
 
-      console.log(project.log);
+      console.log(project.log.replace(/\n$/, ""));
       if (project.status === "normal") {
         console.log("\u001b[1;32mbuild completed:\u001b[0m " + project.name);
       }
