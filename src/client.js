@@ -1,7 +1,9 @@
-"use strict";
-
 addEventListener("load", function () {
-  var audio = {
+  "use strict";
+
+  var audio, favicon, socket, updateProject
+
+  audio = {
     _store: {},
 
     load: function (path) {
@@ -32,53 +34,64 @@ addEventListener("load", function () {
     }
   };
 
+  favicon = {
+    _store: {
+      progress: "data:image/gif;base64,R0lGODlhEAAQAPAAAICAgAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw==",
+      error: "data:image/gif;base64,R0lGODlhEAAQAPAAAP8AAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw==",
+      normal: "data:image/gif;base64,R0lGODlhEAAQAPAAAACAAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw=="
+    },
+
+    init: function () {
+      this.link = document.createElement("link");
+      this.link.rel = "icon";
+      this.link.type = "image/gif";
+      document.head.appendChild(this.link);
+    },
+
+    change: function (iconId) {
+      this.link.href = this._store[iconId];
+    },
+
+    update: function () {
+      if (document.querySelector(".project.in_progress")) {
+        this.change("progress");
+      }
+      else if (document.querySelector(".project.error")) {
+        this.change("error");
+      }
+      else {
+        this.change("normal");
+      }
+    }
+  };
+
   audio.load("voice_complete.ogg");
   audio.load("voice_error.ogg");
 
-  var socket = io.connect("http://localhost");
+  favicon.init();
+  favicon.update();
 
-  var update_favicon = function () {
-    var icon, link;
+  socket = io.connect("http://localhost");
 
-    if (document.querySelector(".project.in_progress")) {
-      icon = "data:image/gif;base64,R0lGODlhEAAQAPAAAICAgAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw==";
-    }
-    else if (document.querySelector(".project.error")) {
-      icon = "data:image/gif;base64,R0lGODlhEAAQAPAAAP8AAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw==";
-    }
-    else {
-      icon = "data:image/gif;base64,R0lGODlhEAAQAPAAAACAAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw==";
-    }
+  updateProject = function (message, mute) {
+    var project;
 
-    if (link = document.querySelector("#favicon")) {
-      link.parentNode.removeChild(link);
-    }
+    project = document.querySelector(".project[data-project_id=\"" + message.id + "\"]");
 
-    link = document.createElement("link");
-    link.id = "favicon";
-    link.rel = "icon";
-    link.type = "image/gif";
-    link.href = icon;
-    document.head.appendChild(link);
-  };
-
-  var update_project = function (message, mute) {
-    if (typeof mute === "undefined") {
-      mute = false;
-    }
-
-    var project = document.querySelector(".project[data-project_id=\"" + message.id + "\"]");
     if (!project) {
       project = document.querySelector("#template > .project").cloneNode(true);
       project.setAttribute("data-project_id", message.id);
       project.querySelector(".name").textContent = message.name;
       document.querySelector("#projects").appendChild(project);
     }
+
     project.className = "project " + message.status;
     project.querySelector(".log").textContent = message.log || "";
     project.parentNode.insertBefore(project, project.parentNode.firstChild);
-    update_favicon();
-    if (!mute) {
+
+    favicon.update();
+
+    if (mute !== true) {
       if (message.status === "normal") {
         audio.play("voice_complete.ogg");
       }
@@ -90,9 +103,9 @@ addEventListener("load", function () {
 
   socket.on("all_projects", function (message) {
     message.forEach(function (project) {
-      update_project(project, true);
+      updateProject(project, true);
     });
   });
 
-  socket.on("project_updated", update_project);
+  socket.on("project_updated", updateProject);
 });
