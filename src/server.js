@@ -1,13 +1,17 @@
 "use strict";
 
-var Project = function (name, basePath, watchPath, buildCommand) {
+var Project, fs, io, server, config, projects, watchLoop;
+
+Project = function (name, basePath, watchPath, buildCommand) {
+  var crypto, hash;
+
   this.name = name;
   this.basePath = basePath;
   this.watchPath = watchPath;
   this.buildCommand = buildCommand;
 
-  var crypto = require("crypto");
-  var hash = crypto.createHash("md5");
+  crypto = require("crypto");
+  hash = crypto.createHash("md5");
   hash.update(this.name);
 
   this.id = hash.digest("hex");
@@ -17,15 +21,17 @@ var Project = function (name, basePath, watchPath, buildCommand) {
 
 Project.prototype = {
   watch: function (callback) {
-    var project = this;
+    var project, childProcess, command;
 
-    var child_process = require("child_process");
-    var command = [
+    project = this;
+
+    childProcess = require("child_process");
+    command = [
       "cd " + project.basePath,
       "inotifywait -q -r -e create,delete,move,close_write " + project.watchPath
     ].join(";");
 
-    child_process.exec(command, function (error, stdout, stderr) {
+    childProcess.exec(command, function (error, stdout, stderr) {
       if (error) {
         project.status = "error"
       }
@@ -34,15 +40,17 @@ Project.prototype = {
     });
   },
   build: function (callback) {
-    var project = this;
+    var project, childProcess, command;
+
+    project = this;
 
     console.log("\u001b[1;33mbuild start:\u001b[0m " + project.name);
 
-    var child_process = require("child_process");
-    var command = "cd " + this.basePath + "; " + this.buildCommand;
+    childProcess = require("child_process");
+    command = "cd " + this.basePath + "; " + this.buildCommand;
     this.status = "in_progress";
 
-    child_process.exec(command, function (error, stdout, stderr) {
+    childProcess.exec(command, function (error, stdout, stderr) {
       project.status = error ? "error" : "normal";
       project.log = stderr + (stderr && stdout ? "\n" : "") + stdout;
 
@@ -59,10 +67,12 @@ Project.prototype = {
   }
 };
 
-var fs = require("fs");
+fs = require("fs");
 
-var app = require("http").createServer(function (req, res) {
-  var files = [
+server = require("http").createServer(function (req, res) {
+  var files, localPath;
+
+  files = [
     "/",
     "/client.css",
     "/client.js",
@@ -71,10 +81,10 @@ var app = require("http").createServer(function (req, res) {
   ]
 
   if (files.indexOf(req.url) !== -1) {
-    var local_path = req.url === "/" ? "/client.html" : req.url;
+    localPath = req.url === "/" ? "/client.html" : req.url;
 
-    fs.readFile(__dirname + local_path, function (err, data) {
-      if (/\.html?$/.test(local_path)) {
+    fs.readFile(__dirname + localPath, function (err, data) {
+      if (/\.html?$/.test(localPath)) {
         res.setHeader("X-Frame-Options", "Deny");
       }
       res.writeHead(200);
@@ -87,17 +97,17 @@ var app = require("http").createServer(function (req, res) {
   }
 });
 
-app.listen(8000);
+server.listen(8000);
 
-var io = require("socket.io").listen(app);
+io = require("socket.io").listen(server);
 
 io.set("log level", 1);
 
-var config = JSON.parse(fs.readFileSync(process.env.HOME + "/.build_center"));
+config = JSON.parse(fs.readFileSync(process.env.HOME + "/.build_center"));
 
-var projects = [];
+projects = [];
 
-var watchLoop = function () {
+watchLoop = function () {
   this.build(function () {
     io.sockets.emit("project_updated", this);
     this.watch(watchLoop);
@@ -106,7 +116,9 @@ var watchLoop = function () {
 };
 
 config.projects.forEach(function (p) {
-  var project = new Project(p.name, p.base_path, p.watch_path, p.build_command);
+  var project;
+
+  project = new Project(p.name, p.base_path, p.watch_path, p.build_command);
   projects.push(project);
   watchLoop.bind(project)();
 });
