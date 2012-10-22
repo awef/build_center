@@ -82,6 +82,7 @@ addEventListener("load", function () {
       project = document.querySelector("#template > .project").cloneNode(true);
       project.setAttribute("data-project_id", message.id);
       project.querySelector(".name").textContent = message.name;
+      project.querySelector(".request_execute").textContent = message.buildCommand;
       document.querySelector("#projects").appendChild(project);
     }
 
@@ -108,4 +109,18 @@ addEventListener("load", function () {
   });
 
   socket.on("project_updated", updateProject);
+
+  document.querySelector("#projects").addEventListener("click", function (e) {
+    var projectId, selector;
+
+    selector = ".project:not(.in_progress) .request_execute";
+
+    if (
+      (e.target.webkitMatchesSelector && e.target.webkitMatchesSelector(selector)) ||
+      (e.target.mozMatchesSelector && e.target.mozMatchesSelector(selector))
+    ) {
+      projectId = e.target.parentNode.getAttribute("data-project_id");
+      socket.emit("request_execute", {id: projectId});
+    }
+  });
 });

@@ -50,6 +50,8 @@ Project.prototype = {
     command = "cd " + this.basePath + "; " + this.buildCommand;
     this.status = "in_progress";
 
+    io.sockets.emit("project_updated", this);
+
     childProcess.exec(command, function (error, stdout, stderr) {
       project.status = error ? "error" : "normal";
       project.log = stderr + (stderr && stdout ? "\n" : "") + stdout;
@@ -62,7 +64,11 @@ Project.prototype = {
         console.log("\u001b[1;31mbuild failed:\u001b[0m " + project.name);
       }
 
-      callback.call(project);
+      io.sockets.emit("project_updated", project);
+
+      if (callback) {
+        callback.call(project);
+      }
     });
   }
 };
@@ -109,10 +115,8 @@ projects = [];
 
 watchLoop = function () {
   this.build(function () {
-    io.sockets.emit("project_updated", this);
     this.watch(watchLoop);
   });
-  io.sockets.emit("project_updated", this);
 };
 
 config.projects.forEach(function (p) {
@@ -125,4 +129,12 @@ config.projects.forEach(function (p) {
 
 io.sockets.on("connection", function (socket) {
   socket.emit("all_projects", projects);
+
+  socket.on("request_execute", function (detail) {
+    projects.forEach(function (project) {
+      if (project.id === detail.id && project.status !== "in_progress") {
+        project.build();
+      }
+    });
+  });
 });
