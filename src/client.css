@@ -1,5 +1,6 @@
 html {
-  background-color: #606666;
+  background: hsl(0, 0%, 20%);
+  color: hsl(0, 0%, 90%);
 }
 
 body {
@@ -7,42 +8,31 @@ body {
 }
 
 .project {
-  margin: 10px;
-  color: #eee;
-  box-shadow: 0 0 5px #333;
-}
-
-.project > header {
-  padding: 10px;
-  background-image: -webkit-linear-gradient(#444, #333);
-  background-image: -moz-linear-gradient(#444, #333);
+  margin: 1rem 2rem;
 }
 
 .project > .log {
-  background-color: #333;
-  color: #eee;
-  margin: 0;
-  padding: 10px;
   word-break: break-all;
   white-space: pre-wrap;
 }
 
-.project > .log:empty {
-  padding: 0;
+.project > .log:empty::after {
+  content: "empty";
+  color: hsl(0, 0%, 60%);
 }
 
 .project.normal .name {
-  color: #9c6;
+  color: hsl(90, 50%, 60%);
 }
 
 .project.in_progress .name {
-  color: #999;
+  color: hsl(0, 0%, 60%);
 }
 
 .project.error {
-  border: 2px solid #c66;
+  border: 2px solid hsl(0, 50%, 60%);
 }
 
 .project.error .name {
-  color: #c66;
+  color: hsl(0, 50%, 60%);
 }
