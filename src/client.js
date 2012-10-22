@@ -1,7 +1,7 @@
 addEventListener("load", function () {
   "use strict";
 
-  var audio, favicon, socket, updateProject
+  var audio, favicon, socket, updateProject;
 
   audio = {
     _store: {},
