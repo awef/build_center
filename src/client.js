@@ -1,7 +1,27 @@
 addEventListener("load", function () {
   "use strict";
 
-  var audio, favicon, socket, updateProject;
+  var audio, favicon, updateCommand, socket;
+
+  HTMLElement.prototype._is = function (selector) {
+    if (this.webkitMatchesSelector) {
+      return this.webkitMatchesSelector(selector);
+    }
+    else if (this.mozMatchesSelector) {
+      return this.mozMatchesSelector(selector);
+    }
+  };
+
+  HTMLElement.prototype._closest = function (selector) {
+    var tmp;
+
+    tmp = this;
+    while (tmp && !tmp._is(selector)) {
+      tmp = tmp.parentElement;
+    }
+
+    return tmp || null;
+  };
 
   audio = {
     _store: {},
@@ -34,9 +54,11 @@ addEventListener("load", function () {
     }
   };
 
+  audio.load("voice_complete.ogg");
+  audio.load("voice_error.ogg");
+
   favicon = {
     _store: {
-      progress: "data:image/gif;base64,R0lGODlhEAAQAPAAAICAgAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw==",
       error: "data:image/gif;base64,R0lGODlhEAAQAPAAAP8AAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw==",
       normal: "data:image/gif;base64,R0lGODlhEAAQAPAAAACAAAAAACH5BAAAAAAALAAAAAAQABAAAAIOhI+py+0Po5y02ouzPgUAOw=="
     },
@@ -53,10 +75,7 @@ addEventListener("load", function () {
     },
 
     update: function () {
-      if (document.querySelector(".project.in_progress")) {
-        this.change("progress");
-      }
-      else if (document.querySelector(".project.error")) {
+      if (document.querySelector(".command.error")) {
         this.change("error");
       }
       else {
@@ -65,62 +84,85 @@ addEventListener("load", function () {
     }
   };
 
-  audio.load("voice_complete.ogg");
-  audio.load("voice_error.ogg");
-
   favicon.init();
   favicon.update();
 
-  socket = io.connect("http://localhost");
+  updateCommand = function (command, mute) {
+    var dom;
 
-  updateProject = function (message, mute) {
-    var project;
+    dom = document.querySelector(".command[data-commandid=\"" + command.id + "\"]");
+    dom.querySelector(".log").textContent = command.log;
 
-    project = document.querySelector(".project[data-project_id=\"" + message.id + "\"]");
-
-    if (!project) {
-      project = document.querySelector("#template > .project").cloneNode(true);
-      project.setAttribute("data-project_id", message.id);
-      project.querySelector(".name").textContent = message.name;
-      project.querySelector(".request_execute").textContent = message.buildCommand;
-      document.querySelector("#projects").appendChild(project);
-    }
-
-    project.className = "project " + message.status;
-    project.querySelector(".log").textContent = message.log || "";
-    project.parentNode.insertBefore(project, project.parentNode.firstChild);
+    dom.classList.remove("normal");
+    dom.classList.remove("running");
+    dom.classList.remove("error");
+    dom.classList.add(command.status);
 
     favicon.update();
 
     if (mute !== true) {
-      if (message.status === "normal") {
+      if (command.status === "normal") {
         audio.play("voice_complete.ogg");
       }
-      else if (message.status === "error") {
+      else if (command.status === "error") {
         audio.play("voice_error.ogg");
       }
     }
   };
 
-  socket.on("all_projects", function (message) {
-    message.forEach(function (project) {
-      updateProject(project, true);
-    });
+  socket = io.connect("http://localhost");
+
+  socket.on("all_commands", function (commands) {
+    var category, categoryName, commandId, command;
+
+    category = {};
+
+    for (commandId in commands) {
+      command = commands[commandId];
+      if (!category[command.category]) {
+        category[command.category] = [];
+      }
+      category[command.category].push(command);
+    }
+
+    var tmp;
+    for (categoryName in category) {
+      tmp = document.querySelector("#template > .category").cloneNode(true);
+      tmp.querySelector(".name").textContent = categoryName;
+      document.body.appendChild(tmp);
+
+      category[categoryName].forEach(function (command) {
+        var dom;
+
+        dom = document.querySelector("#template > .command").cloneNode(true);
+        dom.setAttribute("data-commandid", command.id);
+        dom.querySelector(".name").textContent = command.command;
+        tmp.appendChild(dom);
+        updateCommand(command, true);
+      });
+    }
   });
 
-  socket.on("project_updated", updateProject);
+  socket.on("update", function (command) {
+    updateCommand(command);
+  });
 
-  document.querySelector("#projects").addEventListener("click", function (e) {
-    var projectId, selector;
+  document.documentElement.addEventListener("click", function (e) {
+    var command, tmp;
 
-    selector = ".project:not(.in_progress) .request_execute";
+    if (command = e.target._closest(".command:not(.active)")) {
+      tmp = document.querySelector(".active");
+      tmp && tmp.classList.remove("active");
+      command.classList.add("active");
+    }
+  });
 
-    if (
-      (e.target.webkitMatchesSelector && e.target.webkitMatchesSelector(selector)) ||
-      (e.target.mozMatchesSelector && e.target.mozMatchesSelector(selector))
-    ) {
-      projectId = e.target.parentNode.getAttribute("data-project_id");
-      socket.emit("request_execute", {id: projectId});
+  document.documentElement.addEventListener("dblclick", function (e) {
+    var command, projectId;
+
+    if (command = e.target._closest(".command:not(.running)")) {
+      projectId = command.getAttribute("data-commandid");
+      socket.emit("request_run", {id: projectId});
     }
   });
 });
