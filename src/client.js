@@ -1,7 +1,7 @@
 addEventListener("load", function () {
   "use strict";
 
-  var audio, favicon, updateCommand, socket;
+  var Sound, favicon, updateCommand, socket, voice;
 
   HTMLElement.prototype._is = function (selector) {
     if (this.webkitMatchesSelector) {
@@ -23,39 +23,32 @@ addEventListener("load", function () {
     return tmp || null;
   };
 
-  audio = {
-    _store: {},
+  Sound = function (path) {
+    var xhr;
 
-    load: function (path) {
-      var audio, xhr;
+    this.audio = null;
 
-      audio = this;
-      xhr = new XMLHttpRequest();
-      xhr.open("GET", path);
-      xhr.responseType = "arraybuffer";
-      xhr.onload = function () {
-        var str, tmp, c, l;
-
-        str = "";
-        tmp = new Uint8Array(this.response);
-        for (c = 0, l = tmp.length; c < l; c++) {
-          str += String.fromCharCode(tmp[c]);
-        }
-        audio._store[path] = new Audio("data:audio/ogg;base64," + btoa(str));
-      };
-      xhr.send();
-    },
-
-    play: function (path) {
-      if (path in this._store) {
-        this._store[path].load();
-        this._store[path].play();
+    xhr = new XMLHttpRequest();
+    xhr.open("GET", path);
+    xhr.responseType = "blob";
+    xhr.onload = function () {
+      // TODO URL.revokeObjectURL
+      this.audio = new Audio(URL.createObjectURL(xhr.response));
+    }.bind(this);
+    xhr.send();
+  };
+  Sound.prototype.play = function () {
+    if (this.audio) {
+      this.audio.currentTime = 0;
+      if (this.audio.paused) {
+        this.audio.play();
       }
     }
   };
 
-  audio.load("voice_complete.ogg");
-  audio.load("voice_error.ogg");
+  voice = {};
+  voice.complete = new Sound("voice_complete.ogg");
+  voice.error = new Sound("voice_error.ogg");
 
   favicon = {
     _store: {
@@ -102,10 +95,10 @@ addEventListener("load", function () {
 
     if (mute !== true) {
       if (command.status === "normal") {
-        audio.play("voice_complete.ogg");
+        voice.complete.play();
       }
       else if (command.status === "error") {
-        audio.play("voice_error.ogg");
+        voice.error.play();
       }
     }
   };
